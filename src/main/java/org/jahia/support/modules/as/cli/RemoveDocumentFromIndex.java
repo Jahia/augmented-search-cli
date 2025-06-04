@@ -60,44 +60,84 @@ public class RemoveDocumentFromIndex implements Action {
 
     private void removeJCRNode(JackrabbitStoreProvider provider, List<ApiEvent> events) throws RepositoryException {
         JackrabbitStoreProvider jackrabbitStoreProvider = provider;
-        JCRNodeWrapper node = sessionFactory.getCurrentSystemSession(Constants.EDIT_WORKSPACE, null, null).getNode(path);
-        ApiEvent apiEvent = new ApiEvent() {
-            @Override
-            public int getType() {
-                return Event.NODE_REMOVED;
-            }
+        try {
+            JCRNodeWrapper node = sessionFactory.getCurrentSystemSession(Constants.EDIT_WORKSPACE, null, null).getNode(path);
+            ApiEvent apiEvent = new ApiEvent() {
+                @Override
+                public int getType() {
+                    return Event.NODE_REMOVED;
+                }
 
-            @Override
-            public String getPath() throws RepositoryException {
-                return node.getPath();
-            }
+                @Override
+                public String getPath() throws RepositoryException {
+                    return node.getPath();
+                }
 
-            @Override
-            public String getUserID() {
-                return "";
-            }
+                @Override
+                public String getUserID() {
+                    return "";
+                }
 
-            @Override
-            public String getIdentifier() throws RepositoryException {
-                return node.getIdentifier();
-            }
+                @Override
+                public String getIdentifier() throws RepositoryException {
+                    return node.getIdentifier();
+                }
 
-            @Override
-            public Map getInfo() throws RepositoryException {
-                return Collections.emptyMap();
-            }
+                @Override
+                public Map getInfo() throws RepositoryException {
+                    return Collections.emptyMap();
+                }
 
-            @Override
-            public String getUserData() throws RepositoryException {
-                return "";
-            }
+                @Override
+                public String getUserData() throws RepositoryException {
+                    return "";
+                }
 
-            @Override
-            public long getDate() throws RepositoryException {
-                return System.currentTimeMillis();
-            }
-        };
-        events.add(apiEvent);
+                @Override
+                public long getDate() throws RepositoryException {
+                    return System.currentTimeMillis();
+                }
+            };
+            events.add(apiEvent);
+        } catch (PathNotFoundException e) {
+            ApiEvent apiEvent = new ApiEvent() {
+                @Override
+                public int getType() {
+                    return Event.NODE_REMOVED;
+                }
+
+                @Override
+                public String getPath() throws RepositoryException {
+                    return path;
+                }
+
+                @Override
+                public String getUserID() {
+                    return "";
+                }
+
+                @Override
+                public String getIdentifier() throws RepositoryException {
+                    return "fake-identifier";
+                }
+
+                @Override
+                public Map getInfo() throws RepositoryException {
+                    return Collections.emptyMap();
+                }
+
+                @Override
+                public String getUserData() throws RepositoryException {
+                    return "";
+                }
+
+                @Override
+                public long getDate() throws RepositoryException {
+                    return System.currentTimeMillis();
+                }
+            };
+            events.add(apiEvent);
+        }
         eventService.sendEvents(events, jackrabbitStoreProvider);
     }
 
@@ -108,7 +148,7 @@ public class RemoveDocumentFromIndex implements Action {
         try {
             externalData = externalProvider.getDataSource().getItemByPath(providerPath);
         } catch (PathNotFoundException e) {
-            externalData = new ExternalData("fakeidentifier",providerPath, "nt:base", Collections.EMPTY_MAP, false);
+            externalData = new ExternalData("fake-identifier",providerPath, "nt:base", Collections.EMPTY_MAP, false);
         }
         ExternalData finalExternalData = externalData;
         ApiEvent apiEvent = new ApiEvent() {
