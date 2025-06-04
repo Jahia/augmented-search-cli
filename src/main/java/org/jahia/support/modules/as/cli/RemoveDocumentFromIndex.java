@@ -20,6 +20,7 @@ import org.jahia.services.content.impl.jackrabbit.JackrabbitStoreProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.jcr.PathNotFoundException;
 import javax.jcr.RepositoryException;
 import javax.jcr.observation.Event;
 import java.util.*;
@@ -102,7 +103,14 @@ public class RemoveDocumentFromIndex implements Action {
 
     private void removeExternalDocument(ExternalContentStoreProvider provider, List<ApiEvent> events) throws RepositoryException {
         ExternalContentStoreProvider externalProvider = provider;
-        ExternalData externalData = externalProvider.getDataSource().getItemByPath(StringUtils.substringAfter(path, externalProvider.getMountPoint()));
+        String providerPath = StringUtils.substringAfter(path, externalProvider.getMountPoint());
+        ExternalData externalData = null;
+        try {
+            externalData = externalProvider.getDataSource().getItemByPath(providerPath);
+        } catch (PathNotFoundException e) {
+            externalData = new ExternalData("fakeidentifier",providerPath, "nt:base", Collections.EMPTY_MAP, false);
+        }
+        ExternalData finalExternalData = externalData;
         ApiEvent apiEvent = new ApiEvent() {
             @Override
             public int getType() {
@@ -111,7 +119,7 @@ public class RemoveDocumentFromIndex implements Action {
 
             @Override
             public String getPath() throws RepositoryException {
-                return externalData.getPath();
+                return finalExternalData.getPath();
             }
 
             @Override
@@ -121,13 +129,13 @@ public class RemoveDocumentFromIndex implements Action {
 
             @Override
             public String getIdentifier() throws RepositoryException {
-                return externalData.getId();
+                return finalExternalData.getId();
             }
 
             @Override
             public Map getInfo() throws RepositoryException {
                 Map<String, Object> info = new HashMap<>();
-                info.put("externalData", externalData);
+                info.put("externalData", finalExternalData);
                 return info;
             }
 

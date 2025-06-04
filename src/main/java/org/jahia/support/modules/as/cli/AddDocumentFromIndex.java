@@ -50,14 +50,14 @@ public class AddDocumentFromIndex implements Action {
         List<ApiEvent> events = new ArrayList<>(1);
         JCRStoreProvider provider = sessionFactory.getProvider(path);
         if (provider instanceof ExternalContentStoreProvider) {
-            removeExternalDocument((ExternalContentStoreProvider) provider, events);
+            addExternalDocument((ExternalContentStoreProvider) provider, events);
         } else if (provider instanceof JackrabbitStoreProvider) {
-            removeJCRNode((JackrabbitStoreProvider) provider, events);
+            addJCRNode((JackrabbitStoreProvider) provider, events);
         }
         return null;
     }
 
-    private void removeJCRNode(JackrabbitStoreProvider provider, List<ApiEvent> events) throws RepositoryException {
+    private void addJCRNode(JackrabbitStoreProvider provider, List<ApiEvent> events) throws RepositoryException {
         JackrabbitStoreProvider jackrabbitStoreProvider = provider;
         JCRNodeWrapper node = sessionFactory.getCurrentSystemSession(Constants.EDIT_WORKSPACE, null, null).getNode(path);
         ApiEvent apiEvent = new ApiEvent() {
@@ -100,7 +100,7 @@ public class AddDocumentFromIndex implements Action {
         eventService.sendEvents(events, jackrabbitStoreProvider);
     }
 
-    private void removeExternalDocument(ExternalContentStoreProvider provider, List<ApiEvent> events) throws RepositoryException {
+    private void addExternalDocument(ExternalContentStoreProvider provider, List<ApiEvent> events) throws RepositoryException {
         ExternalContentStoreProvider externalProvider = provider;
         ExternalData externalData = externalProvider.getDataSource().getItemByPath(StringUtils.substringAfter(path, externalProvider.getMountPoint()));
         ApiEvent apiEvent = new ApiEvent() {
