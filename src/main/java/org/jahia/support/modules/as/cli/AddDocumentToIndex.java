@@ -13,18 +13,17 @@ import org.jahia.services.content.impl.jackrabbit.JackrabbitStoreProvider;
 import javax.jcr.PathNotFoundException;
 import javax.jcr.RepositoryException;
 import javax.jcr.observation.Event;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-@Command(scope = "as", name = "remove", description = "Remove document from index")
+@Command(scope = "as", name = "add", description = "Add document to index")
 @Service
-public class RemoveDocumentFromIndex extends AbstractDocumentIndexOperation {
+public class AddDocumentToIndex extends AbstractDocumentIndexOperation {
 
     @Override
     protected int getEventType() {
-        return Event.NODE_REMOVED;
+        return Event.NODE_ADDED;
     }
 
     @Override
@@ -32,28 +31,25 @@ public class RemoveDocumentFromIndex extends AbstractDocumentIndexOperation {
         try {
             JCRNodeWrapper node = sessionFactory.getCurrentSystemSession(Constants.EDIT_WORKSPACE, null, null).getNode(path);
             events.add(createApiEvent(node.getPath(), node.getIdentifier(), null));
+            sendEvents(events, provider);
         } catch (PathNotFoundException e) {
-            events.add(createApiEvent(path, "fake-identifier", null));
+            log.warn("Node not found at path: {}", path);
         }
-
-        sendEvents(events, provider);
     }
 
     @Override
     protected void handleExternalDocument(ExternalContentStoreProvider provider, List<ApiEvent> events) throws RepositoryException {
         String providerPath = StringUtils.substringAfter(path, provider.getMountPoint());
-        ExternalData externalData;
         try {
-            externalData = provider.getDataSource().getItemByPath(providerPath);
+            ExternalData externalData = provider.getDataSource().getItemByPath(providerPath);
+
+            Map<String, Object> info = new HashMap<>();
+            info.put("externalData", externalData);
+
+            events.add(createApiEvent(externalData.getPath(), externalData.getId(), info));
+            sendEvents(events, provider);
         } catch (PathNotFoundException e) {
-            externalData = new ExternalData("fake-identifier", providerPath, "nt:base", Collections.emptyMap(), false);
+            log.warn("External data not found at path: {}", providerPath);
         }
-
-        Map<String, Object> info = new HashMap<>();
-        info.put("externalData", externalData);
-
-        events.add(createApiEvent(externalData.getPath(), externalData.getId(), info));
-
-        sendEvents(events, provider);
     }
 }
