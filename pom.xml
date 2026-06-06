@@ -66,6 +66,14 @@
         <developerConnection>scm:dummy:uri</developerConnection>
     </scm>
 
+    <properties>
+        <import-package>
+            org.jahia.modules.augmentedsearch.graphql;version="[3.7,5)",
+            org.jahia.modules.augmentedsearch.service;version="[3.7,5)",
+            org.jahia.modules.augmentedsearch.settings;version="[3.7,5)"
+        </import-package>
+    </properties>
+
     <repositories>
         <repository>
             <id>jahia-public</id>
