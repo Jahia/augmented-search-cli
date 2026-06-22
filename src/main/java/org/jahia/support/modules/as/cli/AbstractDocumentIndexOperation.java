@@ -1,7 +1,6 @@
 package org.jahia.support.modules.as.cli;
 
 import org.apache.commons.collections4.ListUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.karaf.shell.api.action.Action;
 import org.apache.karaf.shell.api.action.Argument;
 import org.apache.karaf.shell.api.action.Option;
@@ -74,14 +73,14 @@ public abstract class AbstractDocumentIndexOperation implements Action {
 
     /**
      * Strips the provider mount point from the front of the path. The provider was already resolved
-     * from this path, so a prefix check is safe; falls back to substringAfter when the path does not
-     * start with the mount point.
+     * from this path, so the mount point is normally a prefix. If it is not (a degenerate case),
+     * the path is returned unchanged rather than producing an empty/truncated path.
      */
     protected static String toProviderPath(String path, String mountPoint) {
         if (path != null && mountPoint != null && path.startsWith(mountPoint)) {
             return path.substring(mountPoint.length());
         }
-        return StringUtils.substringAfter(path, mountPoint);
+        return path;
     }
 
     protected ApiEvent createApiEvent(String nodePath, String identifier, Map<String, Object> info) {

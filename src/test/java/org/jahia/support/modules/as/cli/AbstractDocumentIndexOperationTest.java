@@ -130,8 +130,8 @@ public class AbstractDocumentIndexOperationTest {
     }
 
     @Test
-    public void toProviderPath_fallsBackWhenNoPrefixMatch() {
-        // path does not start with mount point -> substringAfter behaviour
-        assertEquals("", AbstractDocumentIndexOperation.toProviderPath("/other/file.txt", "/mount"));
+    public void toProviderPath_returnsPathUnchangedWhenNoPrefixMatch() {
+        // Degenerate case: mount point is not a prefix -> return the path unchanged (not "")
+        assertEquals("/other/file.txt", AbstractDocumentIndexOperation.toProviderPath("/other/file.txt", "/mount"));
     }
 }
