@@ -1,6 +1,7 @@
 package org.jahia.support.modules.as.cli;
 
 import org.apache.commons.collections4.ListUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.karaf.shell.api.action.Action;
 import org.apache.karaf.shell.api.action.Argument;
 import org.apache.karaf.shell.api.action.Option;
@@ -24,11 +25,23 @@ import java.util.concurrent.CompletableFuture;
 public abstract class AbstractDocumentIndexOperation implements Action {
     protected static final Logger log = LoggerFactory.getLogger(AbstractDocumentIndexOperation.class);
 
+    private static final int TEST_EVENT_COUNT = 1000;
+    private static final int EVENT_BATCH_SIZE = 100;
+
     @Reference
     protected EventService eventService;
 
     @Reference
     protected JCRSessionFactory sessionFactory;
+
+    // Package-private setters: test seams to inject mocks without OSGi.
+    void setEventService(EventService eventService) {
+        this.eventService = eventService;
+    }
+
+    void setSessionFactory(JCRSessionFactory sessionFactory) {
+        this.sessionFactory = sessionFactory;
+    }
 
     @Argument(name = "path", description = "The document path", required = true)
     protected String path;
@@ -47,6 +60,8 @@ public abstract class AbstractDocumentIndexOperation implements Action {
             handleExternalDocument((ExternalContentStoreProvider) provider, events);
         } else if (provider instanceof JackrabbitStoreProvider) {
             handleJCRNode((JackrabbitStoreProvider) provider, events);
+        } else {
+            log.warn("No indexable provider found for path: {}", path);
         }
         return null;
     }
@@ -56,6 +71,18 @@ public abstract class AbstractDocumentIndexOperation implements Action {
     protected abstract void handleExternalDocument(ExternalContentStoreProvider provider, List<ApiEvent> events) throws RepositoryException;
 
     protected abstract int getEventType();
+
+    /**
+     * Strips the provider mount point from the front of the path. The provider was already resolved
+     * from this path, so a prefix check is safe; falls back to substringAfter when the path does not
+     * start with the mount point.
+     */
+    protected static String toProviderPath(String path, String mountPoint) {
+        if (path != null && mountPoint != null && path.startsWith(mountPoint)) {
+            return path.substring(mountPoint.length());
+        }
+        return StringUtils.substringAfter(path, mountPoint);
+    }
 
     protected ApiEvent createApiEvent(String nodePath, String identifier, Map<String, Object> info) {
         return new ApiEvent() {
@@ -80,7 +107,7 @@ public abstract class AbstractDocumentIndexOperation implements Action {
             }
 
             @Override
-            public Map getInfo() throws RepositoryException {
+            public Map<String, Object> getInfo() throws RepositoryException {
                 return info != null ? info : Collections.emptyMap();
             }
 
@@ -97,26 +124,38 @@ public abstract class AbstractDocumentIndexOperation implements Action {
     }
 
     protected void sendEvents(List<ApiEvent> events, JCRStoreProvider provider) throws RepositoryException {
+        // In test mode, build the batch into a separate list so the caller's list is never mutated.
+        final List<ApiEvent> eventsToSend;
         if (testMode && !events.isEmpty()) {
             ApiEvent testEvent = events.get(0);
-            for (int i = 0; i < 1000; i++) {
-                events.add(testEvent);
+            List<ApiEvent> testBatch = new ArrayList<>(events);
+            for (int i = 0; i < TEST_EVENT_COUNT; i++) {
+                testBatch.add(testEvent);
             }
+            eventsToSend = testBatch;
+        } else {
+            eventsToSend = events;
         }
 
         if (async) {
             CompletableFuture.supplyAsync(() -> {
-                ListUtils.partition(events, 100).forEach(event -> {
+                ListUtils.partition(eventsToSend, EVENT_BATCH_SIZE).forEach(batch -> {
                     try {
-                        eventService.sendEvents(event, provider);
+                        eventService.sendEvents(batch, provider);
                     } catch (RepositoryException e) {
                         log.error(e.getMessage(), e);
                     }
                 });
                 return null;
+            }).whenComplete((r, ex) -> {
+                if (ex != null) {
+                    log.error("Async event sending failed", ex);
+                } else {
+                    log.info("Async event sending completed");
+                }
             });
         } else {
-            eventService.sendEvents(events, provider);
+            eventService.sendEvents(eventsToSend, provider);
         }
     }
 }

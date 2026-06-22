@@ -1,6 +1,5 @@
 package org.jahia.support.modules.as.cli;
 
-import org.apache.commons.lang3.StringUtils;
 import org.apache.karaf.shell.api.action.Command;
 import org.apache.karaf.shell.api.action.lifecycle.Service;
 import org.jahia.api.Constants;
@@ -33,6 +32,7 @@ public class RemoveDocumentFromIndex extends AbstractDocumentIndexOperation {
             JCRNodeWrapper node = sessionFactory.getCurrentSystemSession(Constants.EDIT_WORKSPACE, null, null).getNode(path);
             events.add(createApiEvent(node.getPath(), node.getIdentifier(), null));
         } catch (PathNotFoundException e) {
+            log.warn("JCR node not found at {}, sending synthetic removal event", path);
             events.add(createApiEvent(path, "fake-identifier", null));
         }
 
@@ -41,11 +41,12 @@ public class RemoveDocumentFromIndex extends AbstractDocumentIndexOperation {
 
     @Override
     protected void handleExternalDocument(ExternalContentStoreProvider provider, List<ApiEvent> events) throws RepositoryException {
-        String providerPath = StringUtils.substringAfter(path, provider.getMountPoint());
+        String providerPath = toProviderPath(path, provider.getMountPoint());
         ExternalData externalData;
         try {
             externalData = provider.getDataSource().getItemByPath(providerPath);
         } catch (PathNotFoundException e) {
+            log.warn("External data not found at {}, sending synthetic removal event", providerPath);
             externalData = new ExternalData("fake-identifier", providerPath, "nt:base", Collections.emptyMap(), false);
         }
 
