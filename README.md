@@ -4,6 +4,7 @@ This repository contains a Java-based project built with Maven, providing comman
 
 ## Features
 
+- **Add documents to index**: Index documents from both internal (JCR) and external content stores, supporting synchronous, asynchronous, and test modes for bulk event generation.
 - **Remove documents from index**: Remove documents from both internal (JCR) and external content stores, supporting synchronous, asynchronous, and test modes for bulk event generation.
 - **Start indexation**: Trigger full re-indexing of the platform, with options to force indexation.
 - **Apache Karaf integration**: Commands are available as Karaf shell commands for easy CLI access.
@@ -11,13 +12,20 @@ This repository contains a Java-based project built with Maven, providing comman
 
 ## Commands
 
+- `as:add <path> [--test] [--async]`  
+  Add a document to the index at the specified path.
+    - `path`: **Required.** The JCR or external-provider path of the document to index.
+    - `--test`: Generate 1000 events for load testing.
+    - `--async`: Run indexing in asynchronous mode.
+
 - `as:remove <path> [--test] [--async]`  
   Remove a document from the index at the specified path.
-    - `--test`: Generate 1000 events for testing.
+    - `path`: **Required.** The JCR or external-provider path of the document to remove.
+    - `--test`: Generate 1000 events for load testing.
     - `--async`: Run removal in asynchronous mode.
 
 - `as:index [--force]`  
-  Start full indexation of the platform.
+  Start full indexation of the platform. Fails if no Augmented Search connection is configured.
     - `--force`: Force re-indexation.
 
 ## Build

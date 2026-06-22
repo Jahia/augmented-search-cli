@@ -1,6 +1,5 @@
 package org.jahia.support.modules.as.cli;
 
-import org.apache.commons.lang3.StringUtils;
 import org.apache.karaf.shell.api.action.Command;
 import org.apache.karaf.shell.api.action.lifecycle.Service;
 import org.jahia.api.Constants;
@@ -39,7 +38,7 @@ public class AddDocumentToIndex extends AbstractDocumentIndexOperation {
 
     @Override
     protected void handleExternalDocument(ExternalContentStoreProvider provider, List<ApiEvent> events) throws RepositoryException {
-        String providerPath = StringUtils.substringAfter(path, provider.getMountPoint());
+        String providerPath = toProviderPath(path, provider.getMountPoint());
         try {
             ExternalData externalData = provider.getDataSource().getItemByPath(providerPath);
 
